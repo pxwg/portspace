@@ -1,0 +1,20 @@
+[package]
+name = "portspace"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Portable workspace runtime and MCP adapter for coding agents"
+license = "MIT"
+
+[dependencies]
+async-trait = "0.1"
+base64 = "0.22"
+libc = "0.2"
+regex = "1"
+rmcp = { version = "3.5", features = ["transport-io"] }
+schemars = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tempfile = "3"
+tokio = { version = "1", features = ["full"] }
+walkdir = "2"
