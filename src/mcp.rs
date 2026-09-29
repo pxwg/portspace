@@ -14,6 +14,7 @@ use std::sync::Arc;
 pub struct McpAdapter {
     runtime: Arc<Runtime>,
     tool_router: ToolRouter<Self>,
+    disconnected: tokio_util::sync::CancellationToken,
 }
 #[tool_router]
 impl McpAdapter {
@@ -21,7 +22,12 @@ impl McpAdapter {
         Self {
             runtime: Arc::new(runtime),
             tool_router: Self::tool_router(),
+            disconnected: tokio_util::sync::CancellationToken::new(),
         }
+    }
+
+    pub fn disconnect_token(&self) -> tokio_util::sync::CancellationToken {
+        self.disconnected.clone()
     }
 
     #[tool(
@@ -42,6 +48,7 @@ impl McpAdapter {
         let result = tokio::select! {
             biased;
             _ = context.ct.cancelled() => Err(WorkspaceError::new(ErrorCode::Cancelled,"request cancelled")),
+            _ = self.disconnected.cancelled() => Err(WorkspaceError::new(ErrorCode::Cancelled,"client disconnected")),
             result = self.runtime.execute(request) => result,
         };
         match result {

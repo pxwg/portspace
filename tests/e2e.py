@@ -166,14 +166,25 @@ def main():
             command = ["ssh", "-T", "-o", "BatchMode=yes", args.ssh, shlex.join(command)]
         client = Client(command)
         exercise(client)
+        client.send("tools/call", {"name": "workspace_execute", "arguments": {
+            "workspace": "main", "operation": {"op": "exec", "program": "/bin/sh",
+            "args": ["-c", "touch eof-started; (sleep 1; touch eof-leak) & wait"],
+            "cwd": ".", "env": {}, "timeout_ms": 5000}}})
+        time.sleep(0.3)
         client.close()
         client = None
-        # Session closure must preserve the externally-managed workspace.
+        # Session closure preserves files but must cancel active process groups.
+        time.sleep(1.2)
         if args.ssh:
-            subprocess.run(["ssh", "-T", args.ssh, "test -f " + shlex.quote(root + "/binary")], check=True)
+            checks = " && ".join(["test -f " + shlex.quote(root + "/binary"),
+                                   "test -f " + shlex.quote(root + "/eof-started"),
+                                   "test ! -e " + shlex.quote(root + "/eof-leak")])
+            subprocess.run(["ssh", "-T", args.ssh, checks], check=True)
         else:
             assert os.path.isfile(root + "/binary")
-        print("PASS: session closure preserves workspace; transport=" + (args.ssh or "local"))
+            assert os.path.isfile(root + "/eof-started")
+            assert not os.path.exists(root + "/eof-leak")
+        print("PASS: EOF cancels processes and preserves workspace; transport=" + (args.ssh or "local"))
     finally:
         if client:
             try:

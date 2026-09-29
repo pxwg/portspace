@@ -37,9 +37,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     if runtime.workspaces().is_empty() {
         return Err("configure at least one --workspace ID=ROOT".into());
     }
-    let service = McpAdapter::new(runtime)
-        .serve(rmcp::transport::stdio())
-        .await?;
+    let adapter = McpAdapter::new(runtime);
+    let input =
+        portspace::transport::DisconnectReader::new(tokio::io::stdin(), adapter.disconnect_token());
+    let service = adapter.serve((input, tokio::io::stdout())).await?;
     service.waiting().await?;
     Ok(())
 }

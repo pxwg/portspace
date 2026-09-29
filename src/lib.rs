@@ -2,6 +2,7 @@
 pub mod local;
 pub mod mcp;
 pub mod process;
+pub mod transport;
 
 use async_trait::async_trait;
 use schemars::JsonSchema;
