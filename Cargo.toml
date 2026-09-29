@@ -5,6 +5,8 @@ edition = "2024"
 rust-version = "1.88"
 description = "Portable workspace runtime and MCP adapter for coding agents"
 license = "MIT"
+repository = "https://github.com/pxwg/portspace"
+readme = "README.md"
 
 [dependencies]
 async-trait = "0.1"
