@@ -47,13 +47,14 @@ jobs:
           assert re.fullmatch(r'v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?', tag), tag
           assert tag == 'v' + version, (tag, version)
           PY
+      - run: python3 tests/privacy.py
       - run: cargo fmt --check
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo test --locked
       - run: python3 tests/e2e.py --binary target/debug/portspace
       - name: Build release binary
         if: inputs.package
-        run: cargo build --locked --release --target ${{ matrix.target }}
+        run: bash scripts/build-release.sh --target ${{ matrix.target }}
       - name: Test release binary
         if: inputs.package
         run: python3 tests/e2e.py --binary target/${{ matrix.target }}/release/portspace
@@ -67,6 +68,7 @@ jobs:
           mkdir -p "dist/$name"
           cp "target/$TARGET/release/portspace" LICENSE README.md CHANGELOG.md "dist/$name/"
           tar -czf "dist/$name.tar.gz" -C dist "$name"
+          python3 tests/privacy.py "dist/$name.tar.gz"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: inputs.package
         with:
