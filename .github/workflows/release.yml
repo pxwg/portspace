@@ -1,0 +1,54 @@
+name: Release
+on:
+  push:
+    tags: ['v*.*.*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      package: true
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: portspace-*
+          merge-multiple: true
+          path: dist
+      - name: Verify complete asset set and calculate checksums
+        working-directory: dist
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-apple-darwin aarch64-apple-darwin; do
+            test -s "portspace-${RELEASE_TAG}-${target}.tar.gz"
+          done
+          sha256sum *.tar.gz > SHA256SUMS
+          sha256sum --check SHA256SUMS
+      - name: Publish only after every platform passes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          # A published version is immutable. Failed draft uploads may be retried.
+          if gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft > draft.txt 2>/dev/null; then
+            test "$(cat draft.txt)" = true || { echo 'Refusing to overwrite a published release'; exit 1; }
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "Portspace $RELEASE_TAG" --generate-notes
+          fi
+          gh release upload "$RELEASE_TAG" dist/*.tar.gz dist/SHA256SUMS --clobber
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            gh release edit "$RELEASE_TAG" --draft=false --prerelease
+          else
+            gh release edit "$RELEASE_TAG" --draft=false --latest
+          fi

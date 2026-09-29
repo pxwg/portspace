@@ -1,0 +1,76 @@
+name: Build and verify
+on:
+  workflow_call:
+    inputs:
+      package:
+        description: Build and upload versioned release archives
+        required: false
+        default: false
+        type: boolean
+permissions:
+  contents: read
+jobs:
+  verify:
+    name: ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+          - os: macos-14
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        with:
+          components: rustfmt, clippy
+      - name: Validate version tag
+        if: inputs.package
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          cargo metadata --locked --no-deps --format-version 1 > metadata.json
+          python3 - <<'PY'
+          import json, os, re
+          metadata = json.load(open('metadata.json'))
+          version = next(p['version'] for p in metadata['packages'] if p['name'] == 'portspace')
+          tag = os.environ['RELEASE_TAG']
+          assert re.fullmatch(r'v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?', tag), tag
+          assert tag == 'v' + version, (tag, version)
+          PY
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+      - run: python3 tests/e2e.py --binary target/debug/portspace
+      - name: Build release binary
+        if: inputs.package
+        run: cargo build --locked --release --target ${{ matrix.target }}
+      - name: Test release binary
+        if: inputs.package
+        run: python3 tests/e2e.py --binary target/${{ matrix.target }}/release/portspace
+      - name: Package binary and license
+        if: inputs.package
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          name="portspace-${RELEASE_TAG}-${TARGET}"
+          mkdir -p "dist/$name"
+          cp "target/$TARGET/release/portspace" LICENSE README.md CHANGELOG.md "dist/$name/"
+          tar -czf "dist/$name.tar.gz" -C dist "$name"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: inputs.package
+        with:
+          name: portspace-${{ matrix.target }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
