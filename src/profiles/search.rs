@@ -64,7 +64,7 @@ fn relative<'a>(root: &str, path: &'a str) -> &'a str {
             .trim_start_matches('/')
     }
 }
-fn glob(pattern: &str) -> Result<GlobMatcher> {
+pub(super) fn glob(pattern: &str) -> Result<GlobMatcher> {
     if pattern.len() > 8192 {
         return Err(error("glob exceeds 8192 bytes"));
     }
@@ -74,14 +74,14 @@ fn glob(pattern: &str) -> Result<GlobMatcher> {
         .map(|g| g.compile_matcher())
         .map_err(|e| error(e.to_string()))
 }
-fn glob_matches(matcher: &GlobMatcher, pattern: &str, name: &str) -> bool {
+pub(super) fn glob_matches(matcher: &GlobMatcher, pattern: &str, name: &str) -> bool {
     matcher.is_match(if pattern.contains('/') {
         name
     } else {
         name.rsplit('/').next().unwrap_or(name)
     })
 }
-fn bounded(lines: &[String], mut notices: Vec<String>, empty: &str) -> String {
+pub(super) fn bounded(lines: &[String], mut notices: Vec<String>, empty: &str) -> String {
     let mut out = String::new();
     for line in lines {
         if out.len() + line.len() + usize::from(!out.is_empty()) > 50 * 1024 {
@@ -145,16 +145,16 @@ pub async fn ls(runtime: &Runtime, workspace: &str, input: LsInput) -> Result<St
         .await
 }
 
-struct Entry {
-    path: String,
-    directory: bool,
+pub(super) struct Entry {
+    pub path: String,
+    pub directory: bool,
 }
-struct Walk {
-    entries: Vec<Entry>,
-    notices: Vec<String>,
+pub(super) struct Walk {
+    pub entries: Vec<Entry>,
+    pub notices: Vec<String>,
 }
 
-async fn walk(provider: &Arc<dyn Provider>, root: &str) -> Result<Walk> {
+pub(super) async fn walk(provider: &Arc<dyn Provider>, root: &str) -> Result<Walk> {
     let kind = provider
         .execute(Operation::Stat { path: root.into() })
         .await?;

@@ -53,6 +53,7 @@ jobs:
       - run: cargo test --locked
       - run: python3 tests/e2e.py --binary target/debug/portspace
       - run: python3 tests/profiles.py --binary target/debug/portspace
+      - run: python3 tests/claude_profile.py --binary target/debug/portspace
       - name: Build release binary
         if: inputs.package
         run: bash scripts/build-release.sh --target ${{ matrix.target }}
@@ -61,6 +62,7 @@ jobs:
         run: |
           python3 tests/e2e.py --binary target/${{ matrix.target }}/release/portspace
           python3 tests/profiles.py --binary target/${{ matrix.target }}/release/portspace
+          python3 tests/claude_profile.py --binary target/${{ matrix.target }}/release/portspace
       - name: Package binary and license
         if: inputs.package
         env:

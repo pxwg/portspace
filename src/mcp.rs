@@ -12,6 +12,7 @@ use rmcp::{
 };
 use serde_json::json;
 use std::sync::Arc;
+mod claude_routes;
 
 #[derive(Clone)]
 pub struct McpAdapter {
@@ -19,6 +20,7 @@ pub struct McpAdapter {
     tool_router: ToolRouter<Self>,
     disconnected: tokio_util::sync::CancellationToken,
     workspace: Option<String>,
+    claude_state: Arc<crate::profiles::claude::State>,
 }
 #[tool_router]
 impl McpAdapter {
@@ -28,6 +30,7 @@ impl McpAdapter {
             tool_router: Self::tool_router(),
             disconnected: tokio_util::sync::CancellationToken::new(),
             workspace: None,
+            claude_state: Arc::default(),
         }
     }
 
@@ -54,7 +57,7 @@ impl McpAdapter {
                 "--pi-tools accepts only grep,find,ls",
             ));
         }
-        if profile == ToolProfile::Workspace && !optional_tools.is_empty() {
+        if profile != ToolProfile::Pi && !optional_tools.is_empty() {
             return Err(WorkspaceError::new(
                 ErrorCode::InvalidInput,
                 "--pi-tools requires --tool-profile pi",
@@ -90,7 +93,7 @@ impl McpAdapter {
             "process.timeout",
             "process.cancel",
         ];
-        if !optional_tools.is_empty() {
+        if profile == ToolProfile::ClaudeCode || !optional_tools.is_empty() {
             required.extend(["filesystem.list", "filesystem.stat"]);
         }
         for capability in required {
@@ -101,7 +104,11 @@ impl McpAdapter {
                 ));
             }
         }
-        let mut tool_router = Self::pi_router();
+        let mut tool_router = if profile == ToolProfile::ClaudeCode {
+            Self::claude_profile_router()
+        } else {
+            Self::pi_router()
+        };
         for name in ["grep", "find", "ls"] {
             if !optional_tools.iter().any(|t| t == name) {
                 tool_router.remove_route(name);
@@ -112,6 +119,7 @@ impl McpAdapter {
             tool_router,
             disconnected: tokio_util::sync::CancellationToken::new(),
             workspace,
+            claude_state: Arc::default(),
         })
     }
 

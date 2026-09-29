@@ -106,9 +106,30 @@ reports output truncation without claiming a full-output artifact. `/workspace`
 is virtual for file tools, not shell commands; use relative shell paths. Optional
 search tools are provider-backed, not shell aliases, and document bounded search
 and ignore-rule differences. Images are capped/resized and returned as MCP image
-blocks. Native UI diffs and legacy argument coercion are not implemented. Codex and
-Claude Code profiles remain planned, not advertised. Tool descriptions expose
-supported parameters and limits; run `portspace --help` for profile options.
+blocks. Native UI diffs and legacy argument coercion are not implemented.
+
+The `claude-code` profile implements **Read, Write, Edit, Glob, Grep, Bash**:
+
+```sh
+./target/release/portspace --workspace main=/path/to/project \
+  --tool-profile claude-code --tool-workspace main
+```
+
+It adds numbered reads, session-local read/freshness prerequisites for modifying
+existing files, exact `replace_all` edits, search output modes and millisecond bash
+timeouts. This is a **bounded workspace subset**, not full Claude Code parity:
+no background tasks, persistent cwd, PDF/notebook rendering, multiline grep or
+native permission system. Paths are virtual; Glob sorts lexically, Grep uses Rust
+regex and local ignore rules. Up to 16 read snapshots are retained per session;
+paginated reads snapshot the full file, and writes refresh snapshots. Workspace
+locking does not protect against external writers. Binding is not a sandbox.
+
+The implementation draws on [community tool descriptions at a pinned revision](https://github.com/Piebald-AI/claude-code-system-prompts/tree/3dd9e97d726e16d5e476fbb8935843268f61b741/system-prompts)
+and the [official tools reference](https://code.claude.com/docs/en/tools-reference).
+Those rolling descriptions are not a native schema/executable oracle for any one
+Claude version; native differential and model-driven harness acceptance remain open.
+Codex remains planned. Tool descriptions expose supported parameters and limits;
+run `portspace --help` for profile options.
 
 ## Tools (default workspace profile)
 
@@ -175,6 +196,7 @@ cargo clippy --locked --all-targets -- -D warnings
 cargo test --locked
 python3 tests/e2e.py --binary target/debug/portspace
 python3 tests/profiles.py --binary target/debug/portspace
+python3 tests/claude_profile.py --binary target/debug/portspace
 python3 tests/e2e.py --ssh your-host \
   --binary /path/to/portspace
 ```

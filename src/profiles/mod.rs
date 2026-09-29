@@ -1,4 +1,5 @@
 //! Harness-facing semantics live here, not in providers or client plugins.
+pub mod claude;
 mod fuzzy;
 mod images;
 pub mod pi;
@@ -12,6 +13,7 @@ pub enum ToolProfile {
     #[default]
     Workspace,
     Pi,
+    ClaudeCode,
 }
 impl std::str::FromStr for ToolProfile {
     type Err = WorkspaceError;
@@ -19,9 +21,10 @@ impl std::str::FromStr for ToolProfile {
         match value {
             "workspace" => Ok(Self::Workspace),
             "pi" => Ok(Self::Pi),
+            "claude-code" => Ok(Self::ClaudeCode),
             _ => Err(WorkspaceError::new(
                 ErrorCode::Unsupported,
-                "available tool profiles: workspace, pi",
+                "available tool profiles: workspace, pi, claude-code",
             )),
         }
     }

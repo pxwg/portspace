@@ -19,7 +19,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         match arg.as_str() {
             "--help" | "-h" => {
                 println!(
-                    "Usage: portspace --workspace ID=ROOT [--workspace ID=ROOT ...]\n                 [--tool-profile workspace|pi] [--tool-workspace ID] [--pi-tools grep,find,ls]\n\nTrusted-user POSIX workspace MCP server over stdio. Roots must exist.\nThe default workspace profile exposes workspace_list/workspace_execute.\nPi profile defaults to read/write/edit/bash and requires --tool-workspace.\nOptional grep/find/ls must be enabled explicitly with --pi-tools.\nUse ssh -T HOST /absolute/path/portspace --workspace ID=ROOT for remote workspaces."
+                    "Usage: portspace --workspace ID=ROOT [--workspace ID=ROOT ...]\n                 [--tool-profile workspace|pi|claude-code] [--tool-workspace ID] [--pi-tools grep,find,ls]\n\nTrusted-user POSIX workspace MCP server over stdio. Roots must exist.\nThe default workspace profile exposes workspace_list/workspace_execute.\nHarness profiles require --tool-workspace.\nPi defaults to read/write/edit/bash; Claude Code exposes Read/Write/Edit/Glob/Grep/Bash.\nOptional grep/find/ls must be enabled explicitly with --pi-tools.\nUse ssh -T HOST /absolute/path/portspace --workspace ID=ROOT for remote workspaces."
                 );
                 return Ok(());
             }
