@@ -28,7 +28,7 @@ Requires Rust 1.88+ and a POSIX host (tested on macOS arm64). Python 3 is needed
 for black-box tests. Dependencies are pinned in `Cargo.lock`.
 
 ```sh
-cargo build --locked --release
+bash scripts/build-release.sh
 ./target/release/portspace --workspace main=/path/to/project
 # Multiple independent workspaces:
 ./target/release/portspace --workspace frontend=/path/to/frontend --workspace backend=/path/to/backend
@@ -134,6 +134,7 @@ server to untrusted clients or an unauthenticated network.
 ## Test
 
 ```sh
+python3 tests/privacy.py --history
 cargo fmt --check
 cargo clippy --locked --all-targets -- -D warnings
 cargo test --locked
