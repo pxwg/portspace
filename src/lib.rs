@@ -1,5 +1,6 @@
 //! Harness-independent workspace contract and providers.
 pub mod local;
+pub mod mcp;
 pub mod process;
 
 use async_trait::async_trait;
