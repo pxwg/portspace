@@ -29,36 +29,38 @@ for black-box tests. Dependencies are pinned in `Cargo.lock`.
 
 ```sh
 cargo build --locked --release
-./target/release/portspace --workspace main=/absolute/project/path
+./target/release/portspace --workspace main=/path/to/project
 # Multiple independent workspaces:
-./target/release/portspace --workspace frontend=/src/web --workspace backend=/src/api
+./target/release/portspace --workspace frontend=/path/to/frontend --workspace backend=/path/to/backend
 ```
 
 Roots must already exist. No default workspace or implicit home-directory access is
 configured. The server speaks newline-delimited MCP JSON-RPC on stdin/stdout; diagnostic
 output goes to stderr. MCP handshake, schemas and cancellation use the official `rmcp` SDK.
 
-Example MCP client configuration (adjust absolute paths):
+All paths and host names below are placeholders; replace them with your own absolute paths and SSH host alias.
+
+Example MCP client configuration:
 
 ```json
 {
   "mcpServers": {
     "portspace": {
-      "command": "/absolute/path/to/portspace",
-      "args": ["--workspace", "main=/absolute/project/path"]
+      "command": "/path/to/portspace",
+      "args": ["--workspace", "main=/path/to/project"]
     }
   }
 }
 ```
 
-### Remote workspace on MBA
+### Remote workspace over SSH
 
-Build the binary on MBA, then use existing OpenSSH authentication and host verification:
+Install the binary on the remote host, then use existing OpenSSH authentication and host verification:
 
 ```json
 {
   "mcpServers": {
-    "portspace-mba": {
+    "portspace-remote": {
       "command": "ssh",
       "args": ["-T", "-o", "BatchMode=yes", "your-host",
         "/path/to/portspace",
@@ -68,7 +70,7 @@ Build the binary on MBA, then use existing OpenSSH authentication and host verif
 }
 ```
 
-OpenSSH forwards stdio; the provider is **local on MBA**, not local on the client.
+OpenSSH forwards stdio; the provider is **local on the remote host**, not local on the client.
 Do not add `-t`, disable host-key checking, or print shell greetings to stdout. SSH
 remote commands are shell-parsed: quote remote arguments if their paths contain spaces
 or shell metacharacters. No SSH daemon or credentials are managed by Portspace.
