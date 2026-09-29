@@ -1,5 +1,9 @@
 # Portspace
 
+[![CI](https://github.com/pxwg/portspace/actions/workflows/ci.yml/badge.svg)](https://github.com/pxwg/portspace/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/pxwg/portspace)](https://github.com/pxwg/portspace/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A portable workspace interface for coding agents, implemented in Rust.
 
 ```text
@@ -13,6 +17,10 @@ MCP client → stdio (optionally over SSH) → MCP adapter
 The workspace, not MCP or SSH, is the core abstraction. File operations and processes
 run in the same environment. Each request explicitly selects an authorized workspace.
 The `Provider` trait and `Runtime` can also be used directly as a Rust library.
+
+## Install
+
+Download versioned binaries from [GitHub Releases](https://github.com/pxwg/portspace/releases). Verify the downloaded archive against the release SHA256SUMS before installation.
 
 ## Build and run
 
@@ -137,3 +145,7 @@ schemas, discovery, filesystem/process coherence, isolation, binary encoding, at
 edit failures, search, structured errors, output bounds, timeout, process cancellation,
 and persistent workspace lifecycle. Remote test data is created under a unique temporary
 directory and removed afterward. No existing project files are used.
+
+## License
+
+[MIT](LICENSE). Contributions are welcome through issues and pull requests.
