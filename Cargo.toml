@@ -11,6 +11,9 @@ readme = "README.md"
 [dependencies]
 async-trait = "0.1"
 base64 = "0.22"
+globset = "0.4"
+ignore = "0.4"
+image = { version = "=0.25.8", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp"] }
 libc = "0.2"
 regex = "1"
 rmcp = { version = "3.5", features = ["transport-io"] }
@@ -20,4 +23,5 @@ serde_json = "1"
 tempfile = "3"
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7", features = ["rt"] }
+unicode-normalization = "0.1"
 walkdir = "2"

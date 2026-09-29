@@ -1,4 +1,4 @@
-use portspace::{Runtime, local::LocalProvider, mcp::McpAdapter};
+use portspace::{Runtime, local::LocalProvider, mcp::McpAdapter, profiles::ToolProfile};
 use rmcp::ServiceExt;
 use std::sync::Arc;
 
@@ -12,17 +12,37 @@ async fn main() {
 async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args().skip(1);
     let mut runtime = Runtime::default();
+    let mut profile = ToolProfile::default();
+    let mut tool_workspace = None;
+    let mut optional_tools = Vec::new();
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--help" | "-h" => {
                 println!(
-                    "Usage: portspace --workspace ID=ROOT [--workspace ID=ROOT ...]\n\nTrusted-user POSIX workspace MCP server over stdio. Roots must exist.\nUse ssh -T HOST /absolute/path/portspace --workspace ID=ROOT for remote workspaces."
+                    "Usage: portspace --workspace ID=ROOT [--workspace ID=ROOT ...]\n                 [--tool-profile workspace|pi] [--tool-workspace ID] [--pi-tools grep,find,ls]\n\nTrusted-user POSIX workspace MCP server over stdio. Roots must exist.\nThe default workspace profile exposes workspace_list/workspace_execute.\nPi profile defaults to read/write/edit/bash and requires --tool-workspace.\nOptional grep/find/ls must be enabled explicitly with --pi-tools.\nUse ssh -T HOST /absolute/path/portspace --workspace ID=ROOT for remote workspaces."
                 );
                 return Ok(());
             }
             "--version" => {
                 println!("portspace {}", env!("CARGO_PKG_VERSION"));
                 return Ok(());
+            }
+            "--tool-profile" => {
+                profile = args
+                    .next()
+                    .ok_or("--tool-profile requires a name")?
+                    .parse()?;
+            }
+            "--pi-tools" => {
+                optional_tools.extend(
+                    args.next()
+                        .ok_or("--pi-tools requires grep,find,ls or a subset")?
+                        .split(',')
+                        .map(str::to_owned),
+                );
+            }
+            "--tool-workspace" => {
+                tool_workspace = Some(args.next().ok_or("--tool-workspace requires an ID")?);
             }
             "--workspace" => {
                 let value = args.next().ok_or("--workspace requires ID=ROOT")?;
@@ -37,7 +57,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     if runtime.workspaces().is_empty() {
         return Err("configure at least one --workspace ID=ROOT".into());
     }
-    let adapter = McpAdapter::new(runtime);
+    let adapter =
+        McpAdapter::with_profile_tools(runtime, profile, tool_workspace, &optional_tools)?;
     let input =
         portspace::transport::DisconnectReader::new(tokio::io::stdin(), adapter.disconnect_token());
     let service = adapter.serve((input, tokio::io::stdout())).await?;

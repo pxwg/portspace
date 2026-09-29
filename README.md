@@ -20,7 +20,11 @@ The `Provider` trait and `Runtime` can also be used directly as a Rust library.
 
 ## Install
 
-Download versioned binaries from [GitHub Releases](https://github.com/pxwg/portspace/releases). Verify the downloaded archive against the release SHA256SUMS before installation.
+Download versioned Linux/macOS ARM64 or x86_64 binaries from
+[GitHub Releases](https://github.com/pxwg/portspace/releases). Every release includes
+SHA-256 checksums and the MIT license. Verify the downloaded archive against the
+release's `SHA256SUMS` before extracting and installing the executable. Build from
+source if no archive matches your platform.
 
 ## Build and run
 
@@ -75,7 +79,38 @@ Do not add `-t`, disable host-key checking, or print shell greetings to stdout. 
 remote commands are shell-parsed: quote remote arguments if their paths contain spaces
 or shell metacharacters. No SSH daemon or credentials are managed by Portspace.
 
-## Tools
+## Tool profiles
+
+The default `workspace` profile retains the generic API below. The server-side
+`pi` profile provides best-effort Pi tool migration: **`read`, `write`, `edit`,
+`bash` by default**. File tools include image reads and controlled fuzzy editing;
+bash deliberately uses bounded Workspace semantics.
+
+```sh
+./target/release/portspace --workspace main=/path/to/project \
+  --tool-profile pi --tool-workspace main
+# Optional read-only tools, disabled by default; any subset is accepted:
+./target/release/portspace --workspace main=/path/to/project \
+  --tool-profile pi --tool-workspace main --pi-tools grep,find,ls
+```
+
+Translation runs in this Rust MCP server, not a harness-specific client plugin.
+A generic MCP client/bridge is sufficient. Paths are relative or use the virtual
+`/workspace` root. The binding is explicit; the profile does not expose generic
+workspace tools alongside native-style ones. Disable the harness's own filesystem
+and shell tools separately to prevent accidental core-host execution.
+
+This is **not full Pi parity**: bash is non-interactive/non-streaming, starts at the
+workspace root each time, defaults to a 300-second timeout (also the maximum), and
+reports output truncation without claiming a full-output artifact. `/workspace`
+is virtual for file tools, not shell commands; use relative shell paths. Optional
+search tools are provider-backed, not shell aliases, and document bounded search
+and ignore-rule differences. Images are capped/resized and returned as MCP image
+blocks. Native UI diffs and legacy argument coercion are not implemented. Codex and
+Claude Code profiles remain planned, not advertised. Tool descriptions expose
+supported parameters and limits; run `portspace --help` for profile options.
+
+## Tools (default workspace profile)
 
 - `workspace_list`: workspace IDs, logical root, platform and capabilities.
 - `workspace_execute`: `{ "workspace": "main", "operation": { ... } }`.
@@ -122,7 +157,7 @@ Nonzero process exit is a successful observation with `exit_code`, not a protoco
 - Deadline or cancellation terminates the process group. No detached background jobs.
 - Closing a session preserves externally managed workspace files.
 - Current scope: POSIX, stdio, local execution provider, SSH as transport. No interactive
-  stdin, output streaming, glob, Windows, HTTP, native Pi/Codex/Claude tool emulation,
+  stdin, output streaming, Windows, HTTP, full native harness-tool parity,
   or separate remote Workspace RPC protocol. Unsupported capabilities are not advertised.
 
 **Trust boundary:** this is a trusted-user execution capability, not a sandbox. Commands
@@ -139,6 +174,7 @@ cargo fmt --check
 cargo clippy --locked --all-targets -- -D warnings
 cargo test --locked
 python3 tests/e2e.py --binary target/debug/portspace
+python3 tests/profiles.py --binary target/debug/portspace
 python3 tests/e2e.py --ssh your-host \
   --binary /path/to/portspace
 ```

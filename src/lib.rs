@@ -2,6 +2,7 @@
 pub mod local;
 pub mod mcp;
 pub mod process;
+pub mod profiles;
 pub mod transport;
 
 use async_trait::async_trait;
@@ -175,10 +176,25 @@ impl Runtime {
             .collect()
     }
     pub async fn execute(&self, request: Request) -> Result<Value> {
-        let entry = self.entries.get(&request.workspace).ok_or_else(|| {
+        self.with_workspace(&request.workspace, |provider| async move {
+            provider.execute(request.operation).await
+        })
+        .await
+    }
+
+    /// Serialize a compound operation against one workspace. Call the supplied
+    /// provider directly inside `action`, not Runtime::execute (which would relock).
+    /// This is not rollback: validate before mutation. External writers and other
+    /// Runtime instances are outside this lock, just as for a single operation.
+    pub async fn with_workspace<T, F, Fut>(&self, id: &str, action: F) -> Result<T>
+    where
+        F: FnOnce(Arc<dyn Provider>) -> Fut,
+        Fut: std::future::Future<Output = Result<T>>,
+    {
+        let entry = self.entries.get(id).ok_or_else(|| {
             WorkspaceError::new(ErrorCode::WorkspaceUnavailable, "unknown workspace ID")
         })?;
         let _guard = entry.lock.lock().await;
-        entry.provider.execute(request.operation).await
+        action(entry.provider.clone()).await
     }
 }
